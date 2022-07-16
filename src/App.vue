@@ -1,8 +1,19 @@
 <template>
   <div class="">
-    <nav>
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+    <div class="w-full bg-indigo-600 h-20 text-3xl">logo</div>
+    <nav class="grid grid-cols-2 items-center border-b-2 border-black">
+      <div>
+        <router-link to="/">Home</router-link> |
+        <router-link to="/mypage" v-if="isLogedIn">My Page</router-link>
+      </div>
+      <div>
+        <button
+          class="border-2 rounded-full border-black bg-transparent text-lg p-2"
+          @click="onLogin()"
+        >
+          {{ wallet }}
+        </button>
+      </div>
     </nav>
     <router-view />
   </div>
@@ -10,8 +21,8 @@
 
 <script>
 import Caver from "caver-js";
-import { onMounted } from "@vue/runtime-core";
 import CONTRACT from "./contracts/DecentToken.json";
+import { onMounted, ref } from "@vue/runtime-core";
 
 export default {
   setup() {
@@ -20,12 +31,26 @@ export default {
     const networkID = process.env.VUE_APP_NETWORK_ID;
     const deplyedNetworkAddress = CONTRACT.networks[networkID].address;
 
-    onMounted(async () => {
+    let isLogedIn = ref(false);
+    let wallet = ref("Connect Wallet");
+    onMounted(() => {
+      const addr = window.sessionStorage.getItem("Decent");
+      if (addr != "") {
+        wallet.value = addr.slice(0, 4) + "..." + addr.slice(-4);
+        isLogedIn.value = true;
+      }
+    });
+
+    const onLogin = async () => {
       await window.klaytn.enable();
       caver = new Caver(window.klaytn);
       contract = new caver.klay.Contract(CONTRACT.abi, deplyedNetworkAddress);
+      window.sessionStorage.setItem("Decent", window.klaytn.selectedAddress);
+      const addr = window.klaytn.selectedAddress;
+      wallet.value = addr.slice(0, 4) + "..." + addr.slice(-4);
+      isLogedIn.value = true;
       owner();
-    });
+    };
 
     const owner = () => {
       contract.methods
@@ -35,6 +60,7 @@ export default {
           console.log(res);
         });
     };
+    return { onLogin, wallet, isLogedIn };
   },
 };
 </script>
