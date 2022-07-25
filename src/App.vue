@@ -4,15 +4,17 @@
     <nav class="grid grid-cols-2 items-center border-b-2 border-black">
       <div>
         <router-link to="/">Home</router-link> |
-        <router-link to="/mypage" v-if="isLogedIn">My Page</router-link>
+        <router-link to="/mypage" v-if="isLogedIn">My Page</router-link> | 
+        <router-link to="/mint">Mint</router-link>
       </div>
-      <div>
+      <div class="">
         <button
-          class="border-2 rounded-full border-black bg-transparent text-lg p-2"
+          class="border-2 rounded-full border-black bg-transparent text-lg p-2 mr-3"
           @click="onLogin()"
         >
           {{ wallet }}
         </button>
+        <router-link to="/admin">Admin</router-link>
       </div>
     </nav>
     <router-view />
@@ -52,15 +54,20 @@ export default {
       owner();
     };
 
+    let isOwner = ref(false);
+
     const owner = () => {
       contract.methods
         .owner()
         .call()
         .then((res) => {
           console.log(res);
+          if (res == window.klaytn.selectedAddress) {
+            isOwner.value = true;
+          }
         });
     };
-    return { onLogin, wallet, isLogedIn };
+    return { onLogin, wallet, isLogedIn, isOwner };
   },
 };
 </script>
