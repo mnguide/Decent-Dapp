@@ -1,6 +1,6 @@
 <template>
   <div class="">
-    <div class="w-full bg-indigo-600 h-20 text-3xl">logo</div>
+    <div class="w-full bg-gray-600 h-20 text-3xl">Decent</div>
     <nav class="grid grid-cols-2 items-center border-b-2 border-black">
       <div>
         <router-link to="/">Home</router-link> |

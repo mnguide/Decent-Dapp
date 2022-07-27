@@ -20,6 +20,11 @@
             >
               {{ showdata.projectName }}
             </h1>
+            <h2
+              class="text-black dark:text-white font-bold text-lg leading-8 my-1"
+            >
+              {{ showdata.symbol }}
+            </h2>
 
             <p
               class="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 py-2 px-3 mt-3 divide-y rounded shadow-sm"
@@ -68,7 +73,11 @@
                 <div class="grid grid-cols-2">
                   <div class="px-4 py-2 font-semibold">Owner Address</div>
                   <div class="px-4 py-2 overflow-hidden scrollbar-hide">
-                    {{ showdata.ownerAddress }}
+                    <a
+                      target="_blank"
+                      :href="`${KLAYTN_URL}/account/${showdata.ownerAddress}`"
+                      >{{ showdata.ownerAddress }}</a
+                    >
                   </div>
                 </div>
                 <div class="grid grid-cols-2">
@@ -199,10 +208,13 @@
                 >
                   <div v-for="i in history" :key="i">
                     <div class="text-black dark:text-white">
-                      Token {{ i.returnValues._tokenId }}
+                      Token {{ i.returnValues.tokenId }}
                     </div>
                     <div class="text-black dark:text-white mt-2 text-xs">
-                      Minted To {{ i.returnValues._to }}
+                      from {{ i.returnValues.from }}
+                    </div>
+                    <div class="text-black dark:text-white mt-2 text-xs">
+                      To {{ i.returnValues.to }}
                     </div>
                   </div>
                 </div>
@@ -368,7 +380,7 @@ export default {
         showdata.projectName = res;
       });
       kip17.symbol().then((res) => {
-        console.log(res);
+        showdata.symbol = res;
       });
     };
     const getProjectData = async () => {
@@ -377,6 +389,7 @@ export default {
       _getProjectBaseIpfsURI();
       _getActiveStatus();
       _owner();
+      _getTokenLogs();
     };
 
     const _getActiveStatus = async () => {
@@ -427,19 +440,22 @@ export default {
 
     let history = ref();
 
-    // const _getTokenLogs = () => {
-    //   contract.getPastEvents(
-    //     "transfer",
-    //     {
-    //       filter: {}, // Using an array means OR: e.g. 20 or 23
-    //       fromBlock: 90000000,
-    //       toBlock: "latest",
-    //     },
-    //     function (error, event) {
-    //       history.value = event.reverse();
-    //     }
-    //   );
-    // };
+    const _getTokenLogs = async () => {
+      await contract.getPastEvents(
+        "Transfer",
+        {
+          filter: { from: "0x0000000000000000000000000000000000000000" }, // Using an array means OR: e.g. 20 or 23
+          fromBlock: 90000000,
+          toBlock: "latest",
+        },
+        (error, event) => {
+          console.log(event);
+          if (event.length > 0) {
+            history.value = event.reverse();
+          }
+        }
+      );
+    };
     let currentBlockNumber = ref("");
     const _getCurrentBlock = () => {
       setInterval(() => {
@@ -510,10 +526,13 @@ export default {
           showFail.value = true;
         });
     };
+    const KLAYTN_URL = ref(process.env.VUE_APP_KLAYTN_SCOPE_URL);
+
     return {
       history,
       mint,
       wMint,
+      KLAYTN_URL,
       showdata,
       getProjectData,
       currentBlockNumber,
@@ -525,3 +544,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+a {
+  @apply text-blue-400;
+}
+</style>

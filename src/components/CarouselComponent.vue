@@ -7,19 +7,14 @@
       class="w-full"
     >
       <Slide v-for="(slide, i) in rankings" :key="i">
-        <div class="grid grid-cols-1 bg-indigo-400">
-          <img src="https://picsum.photos/seed/picsum/400/600" alt="NFT image" />
-          <p class="text-xl">
-            TokenID: {{ slide.tokenId }}<br />
-            Power: {{ slide.power }}
-          </p>
-        </div>
+        <InvestorCard :tokenID="slide.tokenId" class="place-self-center"></InvestorCard>
       </Slide>
     </Carousel>
   </div>
 </template>
 
 <script>
+import InvestorCard from "@/components/InvestorCardBack.vue";
 import { Carousel, Slide } from "vue3-carousel";
 import { reactive } from "@vue/reactivity";
 import "vue3-carousel/dist/carousel.css";
@@ -28,11 +23,11 @@ export default {
   props: ["Rankings"],
   components: {
     Carousel,
+    InvestorCard,
     Slide,
   },
   setup(props) {
     const rankings = reactive(props.Rankings);
-    console.log(rankings);
     return { rankings, Carousel, Slide };
   },
 };

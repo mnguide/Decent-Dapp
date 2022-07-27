@@ -20,6 +20,11 @@
             >
               {{ showdata.projectName }}
             </h1>
+            <h2
+              class="text-black dark:text-white font-bold text-lg leading-8 my-1"
+            >
+              {{ showdata.symbol }}
+            </h2>
 
             <p
               class="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 py-2 px-3 mt-3 divide-y rounded shadow-sm"
@@ -68,7 +73,11 @@
                 <div class="grid grid-cols-2">
                   <div class="px-4 py-2 font-semibold">Owner Address</div>
                   <div class="px-4 py-2 overflow-hidden scrollbar-hide">
-                    {{ showdata.ownerAddress }}
+                    <a
+                      target="_blank"
+                      :href="`${KLAYTN_URL}/account/${showdata.ownerAddress}`"
+                      >{{ showdata.ownerAddress }}</a
+                    >
                   </div>
                 </div>
                 <div class="grid grid-cols-2">
@@ -126,6 +135,36 @@
                     {{ showdata.AntibotInterval }}
                   </div>
                 </div>
+                <div class="grid grid-cols-2">
+                  <div class="px-4 py-2 font-semibold">Reward Address</div>
+                  <div class="px-4 py-2 overflow-hidden scrollbar-hide">
+                    <a
+                      target="_blank"
+                      :href="`${KLAYTN_URL}/account/${showdata.rewardAddress}`"
+                      >{{ showdata.rewardAddress }}</a
+                    >
+                  </div>
+                </div>
+                <div class="grid grid-cols-2">
+                  <div class="px-4 py-2 font-semibold">Proxy Address</div>
+                  <div class="px-4 py-2 overflow-hidden scrollbar-hide">
+                    <a
+                      target="_blank"
+                      :href="`${KLAYTN_URL}/account/${showdata.proxyAddr}`"
+                      >{{ showdata.proxyAddr }}</a
+                    >
+                  </div>
+                </div>
+                <div class="grid grid-cols-2">
+                  <div class="px-4 py-2 font-semibold">Main Address</div>
+                  <div class="px-4 py-2 overflow-hidden scrollbar-hide">
+                    <a
+                      target="_blank"
+                      :href="`${KLAYTN_URL}/account/${showdata.mainAddress}`"
+                      >{{ showdata.mainAddress }}</a
+                    >
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -162,10 +201,13 @@
                 >
                   <div v-for="i in history" :key="i">
                     <div class="text-black dark:text-white">
-                      Token {{ i.returnValues._tokenId }}
+                      Token {{ i.returnValues.tokenId }}
                     </div>
                     <div class="text-black dark:text-white mt-2 text-xs">
-                      Minted To {{ i.returnValues._to }}
+                      from {{ i.returnValues.from }}
+                    </div>
+                    <div class="text-black dark:text-white mt-2 text-xs">
+                      To {{ i.returnValues.to }}
                     </div>
                   </div>
                 </div>
@@ -283,9 +325,22 @@
             updateProjectWhitelistPrice
           </button>
         </li>
+        <li class="m-3 tw_btn2">
+          <button @click="show.setProxyAddress = !show.setProxyAddress">
+            setProxyAddress
+          </button>
+        </li>
+        <li class="m-3 tw_btn2">
+          <button @click="show.setRewardAddress = !show.setRewardAddress">
+            setRewardAddress
+          </button>
+        </li>
 
         <li class="m-3 tw_btn2">
           <button @click="withdraw()">withdraw</button>
+        </li>
+        <li class="m-3 tw_btn2">
+          <button @click="setMainAddress">setMainAddress</button>
         </li>
       </ul>
     </div>
@@ -689,6 +744,70 @@
           </div>
         </form>
       </div>
+      <div v-if="show.setProxyAddress">
+        <form class="w-full max-w-sm">
+          <h1 class="admin_txt">Set Proxy Address</h1>
+          <div class="md:flex md:items-center mb-6">
+            <div class="md:w-1/3">
+              <label class="admin_lb" for="inline-full-name"> Address </label>
+            </div>
+            <div class="md:w-2/3">
+              <input
+                class="admin_input"
+                id="inline-full-name"
+                type="text"
+                placeholder="proxy Address"
+                v-model="data.proxyAddr"
+              />
+            </div>
+          </div>
+
+          <div class="md:flex md:items-center">
+            <div class="md:w-1/3"></div>
+            <div class="md:w-2/3">
+              <button
+                class="admin_btn"
+                type="button"
+                @click="setProxyAddress(data.proxyAddr)"
+              >
+                setProxyAddress
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div v-if="show.setRewardAddress">
+        <form class="w-full max-w-sm">
+          <h1 class="admin_txt">Set Reward Address</h1>
+          <div class="md:flex md:items-center mb-6">
+            <div class="md:w-1/3">
+              <label class="admin_lb" for="inline-full-name"> Address </label>
+            </div>
+            <div class="md:w-2/3">
+              <input
+                class="admin_input"
+                id="inline-full-name"
+                type="text"
+                placeholder="Address"
+                v-model="data.rewardAddr"
+              />
+            </div>
+          </div>
+
+          <div class="md:flex md:items-center">
+            <div class="md:w-1/3"></div>
+            <div class="md:w-2/3">
+              <button
+                class="admin_btn"
+                type="button"
+                @click="setRewardAddress(data.rewardAddr)"
+              >
+                setRewardAddress
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -696,13 +815,17 @@
 <script>
 import { onMounted, reactive, ref } from "vue";
 import CONTRACT from "../contracts/DecentToken.json";
+import CONTRACTPROXY from "../contracts/DecentProxy.json";
+
 import Caver from "caver-js";
 export default {
   setup() {
     let caver = null;
     let contract = null;
+    let proxyContract = null;
     const networkID = process.env.VUE_APP_NETWORK_ID;
     const deplyedNetworkAddress = CONTRACT.networks[networkID].address;
+    const ProxyAddress = CONTRACTPROXY.networks[networkID].address;
 
     let data = reactive({
       subaddr: "",
@@ -721,6 +844,8 @@ export default {
       invocation: 0,
       percentage: 0,
       website: "",
+      proxyAddr: "",
+      rewardAddr: "",
     });
 
     let show = reactive({
@@ -737,6 +862,8 @@ export default {
       updateProjectMaxInvocations: false,
       updateProjectPricePerTokenInPeb: false,
       updateProjectWhitelistPrice: false,
+      setProxyAddress: false,
+      setRewardAddress: false,
     });
 
     const TXinfo = {
@@ -746,7 +873,7 @@ export default {
 
     onMounted(async () => {
       caver = new Caver(window.klaytn);
-
+      proxyContract = new caver.klay.Contract(CONTRACTPROXY.abi, ProxyAddress);
       contract = new caver.klay.Contract(CONTRACT.abi, deplyedNetworkAddress);
       await contract.methods
         .isOwner()
@@ -763,7 +890,6 @@ export default {
         .catch((err) => {
           console.log(err);
         });
-      _nameNsymbol();
       _getCurrentBlock();
     });
 
@@ -803,7 +929,7 @@ export default {
 
     const toggleWhitelistMintEnabled = async () => {
       await contract.methods
-        .toggleWhitelistMintEnabled(Number())
+        .toggleWhitelistMintEnabled()
         .send(TXinfo)
         .then((res) => {
           console.log(res);
@@ -873,7 +999,7 @@ export default {
 
     const updateProjectMaxInvocations = async (_maxInvocations) => {
       await contract.methods
-        .updateProjectMaxInvocations(caver.utils.toBN(_maxInvocations))
+        .updateProjectMaxInvocations(_maxInvocations)
         .send(TXinfo)
         .then((res) => {
           console.log(res);
@@ -919,6 +1045,42 @@ export default {
           console.log(err);
         });
     };
+
+    const setRewardAddress = async (_rewardArr) => {
+      contract.methods
+        .setRewardAddress(_rewardArr)
+        .send(TXinfo)
+        .then((res) => {
+          console.log(res);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    };
+    const setProxyAddress = async (_proxyAddr) => {
+      contract.methods
+        .setProxyAddress(_proxyAddr)
+        .send(TXinfo)
+        .then((res) => {
+          console.log(res);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    };
+
+    const setMainAddress = async () => {
+      proxyContract.methods
+        .setMainAddress(deplyedNetworkAddress)
+        .send(TXinfo)
+        .then((res) => {
+          console.log(res);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    };
+
     let showdata = reactive({
       MintLimitPerBlock: 0,
       MintStartBlockNumber: 0,
@@ -931,7 +1093,25 @@ export default {
       active: "",
       url: "",
       whitelistMintActive: "",
+      proxyAddr: "",
+      rewardAddress: "",
+      mainAddress: "",
     });
+    const getProjectData = async () => {
+      _getTokenLogs();
+      _mintingInformation();
+      _getProjectBaseIpfsURI();
+      _getActiveStatus();
+      _owner();
+      getSubAddrs();
+      _nameNsymbol();
+      getMainAddrFromProxy();
+    };
+    const getMainAddrFromProxy = () => {
+      proxyContract.call("MainAddress").then((res) => {
+        showdata.mainAddress = res;
+      });
+    };
     const _nameNsymbol = () => {
       const kip17 = new caver.kct.kip17(deplyedNetworkAddress);
       kip17.name().then((res) => {
@@ -939,17 +1119,9 @@ export default {
         showdata.projectName = res;
       });
       kip17.symbol().then((res) => {
-        console.log(res);
+        showdata.symbol = res;
       });
     };
-    const getProjectData = async () => {
-      //   _getTokenLogs();
-      _mintingInformation();
-      _getProjectBaseIpfsURI();
-      _getActiveStatus();
-      _owner();
-    };
-
     const _getActiveStatus = async () => {
       contract.methods
         .getActiveStatus()
@@ -967,7 +1139,26 @@ export default {
           showdata.url = res;
         });
     };
-
+    const _getRewardAddress = () => {
+      contract.methods
+        .getRewardAddress()
+        .call()
+        .then((res) => {
+          showdata.rewardAddress = res;
+        });
+    };
+    const _getProxyAddress = () => {
+      contract.methods
+        .getProxyAddress()
+        .call()
+        .then((res) => {
+          showdata.proxyAddr = res;
+        });
+    };
+    const getSubAddrs = () => {
+      _getRewardAddress();
+      _getProxyAddress();
+    };
     const _mintingInformation = async () => {
       await contract.methods
         .mintingInformation()
@@ -986,7 +1177,6 @@ export default {
           console.log(err);
         });
     };
-
     const _owner = async () => {
       await contract.methods
         .owner()
@@ -995,22 +1185,23 @@ export default {
           showdata.ownerAddress = res;
         });
     };
-
     let history = ref();
-
-    // const _getTokenLogs = () => {
-    //   contract.getPastEvents(
-    //     "transfer",
-    //     {
-    //       filter: {}, // Using an array means OR: e.g. 20 or 23
-    //       fromBlock: 90000000,
-    //       toBlock: "latest",
-    //     },
-    //     function (error, event) {
-    //       history.value = event.reverse();
-    //     }
-    //   );
-    // };
+    const _getTokenLogs = () => {
+      contract.getPastEvents(
+        "Transfer",
+        {
+          filter: {}, // Using an array means OR: e.g. 20 or 23
+          fromBlock: 90000000,
+          toBlock: "latest",
+        },
+        function (error, event) {
+          console.log(event);
+          if (event.length > 0) {
+            history.value = event.reverse();
+          }
+        }
+      );
+    };
     let currentBlockNumber = ref("");
     const _getCurrentBlock = () => {
       setInterval(() => {
@@ -1020,23 +1211,27 @@ export default {
         });
       }, 1000);
     };
+    const KLAYTN_URL = ref(process.env.VUE_APP_KLAYTN_SCOPE_URL);
     return {
       airDropMint,
       toggleWhitelistMintEnabled,
+      KLAYTN_URL,
       removeWhitelist,
       addWhitelist,
       toggleProjectIsActive,
       updateAntibotInterval,
       updateMintLimitPerBlock,
       updateMintStartBlockNumber,
-
+      setMainAddress,
       updateProjectBaseIpfsURI,
 
       updateProjectMaxInvocations,
       updateProjectPricePerTokenInPeb,
       updateProjectWhitelistPrice,
       withdraw,
+      setRewardAddress,
       data,
+      setProxyAddress,
       history,
       show,
       showdata,
@@ -1065,5 +1260,8 @@ export default {
 }
 .admin_lb {
   @apply block text-gray-500 font-bold md:text-right mb-1 md:mb-0 pr-4;
+}
+a {
+  @apply text-blue-400;
 }
 </style>
