@@ -355,7 +355,9 @@ export default {
 
       contract = new caver.klay.Contract(CONTRACT.abi, deplyedNetworkAddress);
       getProjectData();
-      _getBalance();
+      if (window.klaytn.selectedAddress !== undefined) {
+        _getBalance();
+      }
       _nameNsymbol();
       _getCurrentBlock();
     });
@@ -450,7 +452,7 @@ export default {
         },
         (error, event) => {
           console.log(event);
-          if (event.length > 0) {
+          if (event !== undefined && event.length !== undefined && event.length > 0) {
             history.value = event.reverse();
           }
         }

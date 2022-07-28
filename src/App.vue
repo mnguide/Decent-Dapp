@@ -37,7 +37,7 @@ export default {
     let wallet = ref("Connect Wallet");
     onMounted(() => {
       const addr = window.sessionStorage.getItem("Decent");
-      if (addr != "") {
+      if (addr != "" && addr != null) {
         wallet.value = addr.slice(0, 4) + "..." + addr.slice(-4);
         isLogedIn.value = true;
       }
